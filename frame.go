@@ -23,6 +23,7 @@ type Frame struct {
 	XOffset, YOffset int
 	DelayNumerator   uint16
 	DelayDenominator uint16
+	DelayTime        float32
 	DisposeOp        byte
 	BlendOp          byte
 	// IsDefault indicates if the Frame is a default image that

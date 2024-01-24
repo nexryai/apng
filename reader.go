@@ -127,7 +127,7 @@ type decoder struct {
 	transparent    [6]byte
 
 	// フレームがエンコードされるごとに実行される関数
-	frameHook func(frame *image.Image, frameNum int) error
+	frameHook func(frame *image.Image, frameNum int, frameDelay float32) error
 }
 
 // A FormatError reports that the input is not a valid PNG.
@@ -915,6 +915,7 @@ func (d *decoder) parsefcTL(length uint32) (err error) {
 	d.a.Frames[d.frameIndex].YOffset = int(binary.BigEndian.Uint32(d.tmp[16:20]))
 	d.a.Frames[d.frameIndex].DelayNumerator = binary.BigEndian.Uint16(d.tmp[20:22])
 	d.a.Frames[d.frameIndex].DelayDenominator = binary.BigEndian.Uint16(d.tmp[22:24])
+	d.a.Frames[d.frameIndex].DelayTime = float32(d.a.Frames[d.frameIndex].DelayNumerator) / float32(d.a.Frames[d.frameIndex].DelayDenominator)
 	d.a.Frames[d.frameIndex].DisposeOp = d.tmp[24]
 	d.a.Frames[d.frameIndex].BlendOp = d.tmp[25]
 
@@ -935,7 +936,7 @@ func (d *decoder) parsefdAT(length uint32) (err error) {
 		return FormatError("invalid checksum")
 	}
 
-	err = d.frameHook(framePtr, d.frameIndex)
+	err = d.frameHook(framePtr, d.frameIndex, d.a.Frames[d.frameIndex].DelayTime)
 	if err != nil {
 		return err
 	}
@@ -952,7 +953,7 @@ func (d *decoder) parseIDAT(length uint32) (err error) {
 		return FormatError("invalid checksum")
 	}
 
-	err = d.frameHook(framePtr, d.frameIndex)
+	err = d.frameHook(framePtr, d.frameIndex, d.a.Frames[d.frameIndex].DelayTime)
 	if err != nil {
 		return err
 	}
@@ -1077,7 +1078,7 @@ func (d *decoder) checkHeader() error {
 // Type. If the first frame returns true for IsDefault(), that
 // frame should not be part of the result.
 // The type of Image returned depends on the PNG contents.
-func DecodeAll(r io.Reader, hook func(frame *image.Image, frameNum int) error) (APNG, error) {
+func DecodeAll(r io.Reader, hook func(frame *image.Image, frameNum int, frameDelay float32) error) (APNG, error) {
 	d := &decoder{
 		r:          r,
 		crc:        crc32.NewIEEE(),

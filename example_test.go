@@ -16,8 +16,8 @@ func TestDecodeAll(t *testing.T) {
 	}
 	defer f.Close()
 
-	a, err := DecodeAll(f, func(frame *image.Image, frameNum int) error {
-		fmt.Printf("Frame %d\n", frameNum)
+	a, err := DecodeAll(f, func(frame *image.Image, frameNum int, frameDelay float32) error {
+		fmt.Printf("Frame %d | Delay:%v\n", frameNum, frameDelay)
 		return nil
 	})
 
