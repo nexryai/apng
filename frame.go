@@ -4,10 +4,6 @@
 
 package apng
 
-import (
-	"image"
-)
-
 // dispose_op values, as per the APNG spec.
 const (
 	DISPOSE_OP_NONE       = 0
@@ -22,7 +18,7 @@ const (
 )
 
 type Frame struct {
-	Image            image.Image
+	//Image            image.Image
 	width, height    int
 	XOffset, YOffset int
 	DelayNumerator   uint16

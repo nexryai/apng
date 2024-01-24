@@ -125,6 +125,9 @@ type decoder struct {
 	// transparency, as opposed to palette transparency.
 	useTransparent bool
 	transparent    [6]byte
+
+	// フレームがエンコードされるごとに実行される関数
+	frameHook func(frame *image.Image, frameNum int) error
 }
 
 // A FormatError reports that the input is not a valid PNG.
@@ -332,7 +335,9 @@ func (d *decoder) parsetRNS(length uint32) error {
 
 // Read presents one or more IDAT chunks as one continuous stream (minus the
 // intermediate chunk headers and footers). If the PNG data looked like:
-//   ... len0 IDAT xxx crc0 len1 IDAT yy crc1 len2 IEND crc2
+//
+//	... len0 IDAT xxx crc0 len1 IDAT yy crc1 len2 IEND crc2
+//
 // then this reader presents xxxyy. For well-formed PNG data, the decoder state
 // immediately before the first Read call is that d.r is positioned between the
 // first IDAT and xxx, and the decoder state immediately after the last Read
@@ -382,7 +387,7 @@ func (d *decoder) Read(p []byte) (int, error) {
 }
 
 // decode decodes the IDAT data into an image.
-func (d *decoder) decode() (image.Image, error) {
+func (d *decoder) decode() (*image.Image, error) {
 	r, err := zlib.NewReader(d)
 	if err != nil {
 		return nil, err
@@ -426,7 +431,7 @@ func (d *decoder) decode() (image.Image, error) {
 		return nil, FormatError("too much pixel data")
 	}
 
-	return img, nil
+	return &img, nil
 }
 
 // readImagePass reads a single image pass, sized according to the pass number.
@@ -923,20 +928,36 @@ func (d *decoder) parsefdAT(length uint32) (err error) {
 	}
 	d.crc.Write(d.tmp[:4])
 	d.idatLength = length - 4
-	d.a.Frames[d.frameIndex].Image, err = d.decode()
+	framePtr, err := d.decode()
+	if err != nil {
+		return err
+	} else if d.verifyChecksum() != nil {
+		return FormatError("invalid checksum")
+	}
+
+	err = d.frameHook(framePtr, d.frameIndex)
 	if err != nil {
 		return err
 	}
-	return d.verifyChecksum()
+
+	return nil
 }
 
 func (d *decoder) parseIDAT(length uint32) (err error) {
 	d.idatLength = length
-	d.a.Frames[d.frameIndex].Image, err = d.decode()
+	framePtr, err := d.decode()
+	if err != nil {
+		return err
+	} else if d.verifyChecksum() != nil {
+		return FormatError("invalid checksum")
+	}
+
+	err = d.frameHook(framePtr, d.frameIndex)
 	if err != nil {
 		return err
 	}
-	return d.verifyChecksum()
+
+	return nil
 }
 
 func (d *decoder) parseIEND(length uint32) error {
@@ -1056,12 +1077,13 @@ func (d *decoder) checkHeader() error {
 // Type. If the first frame returns true for IsDefault(), that
 // frame should not be part of the result.
 // The type of Image returned depends on the PNG contents.
-func DecodeAll(r io.Reader) (APNG, error) {
+func DecodeAll(r io.Reader, hook func(frame *image.Image, frameNum int) error) (APNG, error) {
 	d := &decoder{
 		r:          r,
 		crc:        crc32.NewIEEE(),
 		frameIndex: 0,
 		a:          APNG{Frames: make([]Frame, 1)},
+		frameHook:  hook,
 	}
 	d.a.Frames[0].IsDefault = true
 	if err := d.checkHeader(); err != nil {
@@ -1079,15 +1101,6 @@ func DecodeAll(r io.Reader) (APNG, error) {
 		}
 	}
 	return d.a, nil
-}
-
-// Decode reads an APNG file from r and returns the default image.
-func Decode(r io.Reader) (image.Image, error) {
-	a, err := DecodeAll(r)
-	if err != nil {
-		return nil, err
-	}
-	return a.Frames[0].Image, nil
 }
 
 // DecodeConfig returns the color model and dimensions of a PNG image without
@@ -1147,6 +1160,8 @@ func DecodeConfig(r io.Reader) (image.Config, error) {
 	}, nil
 }
 
+/*
 func init() {
 	image.RegisterFormat("apng", pngHeader, Decode, DecodeConfig)
 }
+*/
