@@ -107,11 +107,13 @@ const (
 const pngHeader = "\x89PNG\r\n\x1a\n"
 
 type FrameHookArgs struct {
-	Buffer *image.Image
-	Num    int
-	Delay  float32
-	Width  int
-	Height int
+	Buffer  *image.Image
+	Num     int
+	Delay   float32
+	Width   int
+	OffsetX int
+	Height  int
+	OffsetY int
 }
 
 type decoder struct {
@@ -945,11 +947,13 @@ func (d *decoder) parsefdAT(length uint32) (err error) {
 	}
 
 	args := &FrameHookArgs{
-		Buffer: framePtr,
-		Num:    d.frameIndex,
-		Delay:  d.a.Frames[d.frameIndex].DelayTime,
-		Width:  d.a.Frames[d.frameIndex].width,
-		Height: d.a.Frames[d.frameIndex].height,
+		Buffer:  framePtr,
+		Num:     d.frameIndex,
+		Delay:   d.a.Frames[d.frameIndex].DelayTime,
+		Width:   d.a.Frames[d.frameIndex].width,
+		OffsetX: d.a.Frames[d.frameIndex].XOffset,
+		Height:  d.a.Frames[d.frameIndex].height,
+		OffsetY: d.a.Frames[d.frameIndex].YOffset,
 	}
 
 	err = d.frameHook(args)
@@ -971,11 +975,13 @@ func (d *decoder) parseIDAT(length uint32) (err error) {
 	}
 
 	args := &FrameHookArgs{
-		Buffer: framePtr,
-		Num:    d.frameIndex,
-		Delay:  d.a.Frames[d.frameIndex].DelayTime,
-		Width:  d.a.Frames[d.frameIndex].width,
-		Height: d.a.Frames[d.frameIndex].height,
+		Buffer:  framePtr,
+		Num:     d.frameIndex,
+		Delay:   d.a.Frames[d.frameIndex].DelayTime,
+		Width:   d.a.Frames[d.frameIndex].width,
+		OffsetX: d.a.Frames[d.frameIndex].XOffset,
+		Height:  d.a.Frames[d.frameIndex].height,
+		OffsetY: d.a.Frames[d.frameIndex].YOffset,
 	}
 
 	err = d.frameHook(args)

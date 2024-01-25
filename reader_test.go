@@ -16,7 +16,7 @@ func TestDecodeAll(t *testing.T) {
 	defer f.Close()
 
 	a, err := DecodeAll(f, func(f *FrameHookArgs) error {
-		fmt.Printf("Frame %d | Delay:%v\n", f.Num, f.Delay)
+		fmt.Printf("Frame %d | Delay:%v | xOffset:%d\n", f.Num, f.Delay, f.OffsetX)
 		return nil
 	})
 
