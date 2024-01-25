@@ -2,7 +2,6 @@ package apng
 
 import (
 	"fmt"
-	"image"
 	"log"
 	"os"
 	"testing"
@@ -16,8 +15,8 @@ func TestDecodeAll(t *testing.T) {
 	}
 	defer f.Close()
 
-	a, err := DecodeAll(f, func(frame *image.Image, frameNum int, frameDelay float32) error {
-		fmt.Printf("Frame %d | Delay:%v\n", frameNum, frameDelay)
+	a, err := DecodeAll(f, func(f *FrameHookArgs) error {
+		fmt.Printf("Frame %d | Delay:%v\n", f.Num, f.Delay)
 		return nil
 	})
 

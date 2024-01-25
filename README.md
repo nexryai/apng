@@ -10,7 +10,6 @@ package main
 
 import (
 	"fmt"
-	"image"
 	"os"
 	"github.com/nexryai/apng"
 )
@@ -23,8 +22,8 @@ func main() {
 	}
 	defer f.Close()
 
-	_, err = apng.DecodeAll(f, func(frame *image.Image, frameNum int, frameDelay float32) error {
-		fmt.Printf("Frame %d | Delay:%v\n", frameNum, frameDelay)
+	_, err = apng.DecodeAll(f, func(f *apng.FrameHookArgs) error {
+		fmt.Printf("Frame %d | Delay:%v\n", f.Num, f.Delay)
 		return nil
 	})
 

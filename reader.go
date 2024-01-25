@@ -106,6 +106,14 @@ const (
 
 const pngHeader = "\x89PNG\r\n\x1a\n"
 
+type FrameHookArgs struct {
+	Buffer *image.Image
+	Num    int
+	Delay  float32
+	Width  int
+	Height int
+}
+
 type decoder struct {
 	r             io.Reader
 	numFrames     uint32
@@ -127,7 +135,7 @@ type decoder struct {
 	transparent    [6]byte
 
 	// フレームがエンコードされるごとに実行される関数
-	frameHook func(frame *image.Image, frameNum int, frameDelay float32) error
+	frameHook func(*FrameHookArgs) error
 }
 
 // A FormatError reports that the input is not a valid PNG.
@@ -936,7 +944,16 @@ func (d *decoder) parsefdAT(length uint32) (err error) {
 		return FormatError("invalid checksum")
 	}
 
-	err = d.frameHook(framePtr, d.frameIndex, d.a.Frames[d.frameIndex].DelayTime)
+	args := &FrameHookArgs{
+		Buffer: framePtr,
+		Num:    d.frameIndex,
+		Delay:  d.a.Frames[d.frameIndex].DelayTime,
+		Width:  d.a.Frames[d.frameIndex].width,
+		Height: d.a.Frames[d.frameIndex].height,
+	}
+
+	err = d.frameHook(args)
+
 	if err != nil {
 		return err
 	}
@@ -953,7 +970,16 @@ func (d *decoder) parseIDAT(length uint32) (err error) {
 		return FormatError("invalid checksum")
 	}
 
-	err = d.frameHook(framePtr, d.frameIndex, d.a.Frames[d.frameIndex].DelayTime)
+	args := &FrameHookArgs{
+		Buffer: framePtr,
+		Num:    d.frameIndex,
+		Delay:  d.a.Frames[d.frameIndex].DelayTime,
+		Width:  d.a.Frames[d.frameIndex].width,
+		Height: d.a.Frames[d.frameIndex].height,
+	}
+
+	err = d.frameHook(args)
+
 	if err != nil {
 		return err
 	}
@@ -1078,7 +1104,7 @@ func (d *decoder) checkHeader() error {
 // Type. If the first frame returns true for IsDefault(), that
 // frame should not be part of the result.
 // The type of Image returned depends on the PNG contents.
-func DecodeAll(r io.Reader, hook func(frame *image.Image, frameNum int, frameDelay float32) error) (APNG, error) {
+func DecodeAll(r io.Reader, hook func(*FrameHookArgs) error) (APNG, error) {
 	d := &decoder{
 		r:          r,
 		crc:        crc32.NewIEEE(),
