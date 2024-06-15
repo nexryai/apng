@@ -9,7 +9,7 @@ import (
 
 func TestDecodeAll(t *testing.T) {
 	// Open our animated PNG file
-	f, err := os.Open("tests/MultipleIDATs.png")
+	f, err := os.Open("tests/blendover.png")
 	if err != nil {
 		panic(err)
 	}
@@ -17,6 +17,7 @@ func TestDecodeAll(t *testing.T) {
 
 	a, err := DecodeAll(f, func(f *FrameHookArgs) error {
 		fmt.Printf("Frame %d | Delay:%v | xOffset:%d\n", f.Num, f.Delay, f.OffsetX)
+		fmt.Printf("BlendOp: %d | DisposeOp: %d\n", f.BlendOp, f.DisposeOp)
 		return nil
 	})
 

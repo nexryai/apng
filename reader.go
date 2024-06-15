@@ -107,13 +107,15 @@ const (
 const pngHeader = "\x89PNG\r\n\x1a\n"
 
 type FrameHookArgs struct {
-	Buffer  *image.Image
-	Num     int
-	Delay   float32
-	Width   int
-	OffsetX int
-	Height  int
-	OffsetY int
+	Buffer    *image.Image
+	Num       int
+	Delay     float32
+	Width     int
+	OffsetX   int
+	Height    int
+	OffsetY   int
+	BlendOp   int
+	DisposeOp int
 }
 
 type decoder struct {
@@ -946,14 +948,34 @@ func (d *decoder) parsefdAT(length uint32) (err error) {
 		return FormatError("invalid checksum")
 	}
 
+	// blendOpとdisposeOpを設定
+	var blendOp, disposeOp int
+	switch d.a.Frames[d.frameIndex].BlendOp {
+	case 0:
+		blendOp = BLEND_OP_SOURCE
+	case 1:
+		blendOp = BLEND_OP_OVER
+	}
+
+	switch d.a.Frames[d.frameIndex].DisposeOp {
+	case 0:
+		disposeOp = DISPOSE_OP_NONE
+	case 1:
+		disposeOp = DISPOSE_OP_BACKGROUND
+	case 2:
+		disposeOp = DISPOSE_OP_PREVIOUS
+	}
+
 	args := &FrameHookArgs{
-		Buffer:  framePtr,
-		Num:     d.frameIndex,
-		Delay:   d.a.Frames[d.frameIndex].DelayTime,
-		Width:   d.a.Frames[d.frameIndex].width,
-		OffsetX: d.a.Frames[d.frameIndex].XOffset,
-		Height:  d.a.Frames[d.frameIndex].height,
-		OffsetY: d.a.Frames[d.frameIndex].YOffset,
+		Buffer:    framePtr,
+		Num:       d.frameIndex,
+		Delay:     d.a.Frames[d.frameIndex].DelayTime,
+		Width:     d.a.Frames[d.frameIndex].width,
+		OffsetX:   d.a.Frames[d.frameIndex].XOffset,
+		Height:    d.a.Frames[d.frameIndex].height,
+		OffsetY:   d.a.Frames[d.frameIndex].YOffset,
+		BlendOp:   blendOp,
+		DisposeOp: disposeOp,
 	}
 
 	err = d.frameHook(args)
